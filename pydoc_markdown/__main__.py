@@ -137,7 +137,7 @@ def main(argv=None, prog=None, onreturn=None):
   for filename, module in modules:
     document = Document.join(config.loader.load_document(modspec) for
       modspec in module.split(','))
-    document.filename = document
+    document.filename = filename
     index.add_document(document)
 
   # Preprocessor

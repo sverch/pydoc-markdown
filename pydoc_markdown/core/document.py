@@ -46,6 +46,7 @@ class DocumentIndex(object):
     assert isinstance(document, Document), repr(document)
     if not document.filename:
       raise ValueError('Document.filename is not set')
+    assert isinstance(document.filename, str), repr(document.filename)
     if document.filename in self.documents:
       raise ValueError('Document "{}" already exists'.format(document.filename))
     self.documents[document.filename] = document
