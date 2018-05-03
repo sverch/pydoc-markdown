@@ -1,12 +1,20 @@
+# Bytecompiled Python files
 *.py[cod]
-*.egg
-*.egg-info
+
+# Distribution
 build/
-.DS_Store
-venv[23]/
-.venv/
-test.md
 dist/
 README.rst
+*.egg
+*.egg-info
+
+# Virtualenv
+venv/
+venv[23]/
+.venv/
+.venv[23]/
 Pipfile
 Pipfile.lock
+
+# MacOS
+.DS_Store
