@@ -24,15 +24,19 @@ import os, sys
 
 
 def readme():
-  if os.path.isfile('README.md') and any('dist' in x for x in sys.argv[1:]):
-    if os.system('pandoc -s README.md -o README.rst') != 0:
-      print('-----------------------------------------------------------------')
-      print('WARNING: README.rst could not be generated, pandoc command failed')
-      print('-----------------------------------------------------------------')
-      if sys.stdout.isatty():
-        input("Enter to continue... ")
-    else:
-      print("Generated README.rst with Pandoc")
+  if not os.path.isfile('README.md'):
+    return
+  if not any('dist' in x for x in sys.argv[1:]):
+    return
+
+  if os.system('pandoc -s README.md -o README.rst') != 0:
+    print('-----------------------------------------------------------------')
+    print('WARNING: README.rst could not be generated, pandoc command failed')
+    print('-----------------------------------------------------------------')
+    if sys.stdout.isatty():
+      input("Enter to continue... ")
+  else:
+    print("Generated README.rst with Pandoc")
 
   if os.path.isfile('README.rst'):
     with open('README.rst') as fp:
@@ -41,34 +45,34 @@ def readme():
 
 
 setup(
-    name='pydoc-markdown',
-    version='3.0.0-dev',
-    description='Create Python API documentation in Markdown format',
-    long_description=readme(),
-    url='https://github.com/NiklasRosenstein/pydoc-markdown',
-    author='Niklas Rosenstein',
-    author_email='rosensteinniklas@gmail.com',
-    license='MIT',
-    classifiers=[
-        'Development Status :: 3 - Alpha',
-        'Intended Audience :: Developers',
-        'Intended Audience :: End Users/Desktop',
-        'Topic :: Software Development :: Code Generators',
-        'Topic :: Utilities',
-        'License :: OSI Approved :: MIT License',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
+  name='pydoc-markdown',
+  version='3.0.0-dev',
+  description='Create Python API documentation in Markdown format',
+  long_description=readme(),
+  url='https://github.com/NiklasRosenstein/pydoc-markdown',
+  author='Niklas Rosenstein',
+  author_email='rosensteinniklas@gmail.com',
+  license='MIT',
+  classifiers=[
+    'Development Status :: 3 - Alpha',
+    'Intended Audience :: Developers',
+    'Intended Audience :: End Users/Desktop',
+    'Topic :: Software Development :: Code Generators',
+    'Topic :: Utilities',
+    'License :: OSI Approved :: MIT License',
+    'Programming Language :: Python :: 2',
+    'Programming Language :: Python :: 2.7',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.3',
+    'Programming Language :: Python :: 3.4',
+    'Programming Language :: Python :: 3.5',
+  ],
+  keywords='markdown pydoc generator docs documentation',
+  packages=['pydoc_markdown'],
+  install_requires=['six'],
+  entry_points={
+    'console_scripts': [
+      'pydoc-markdown=pydoc_markdown.__main__:main',
     ],
-    keywords='markdown pydoc generator docs documentation',
-    packages=['pydoc_markdown'],
-    install_requires=['six'],
-    entry_points={
-        'console_scripts': [
-            'pydoc-markdown=pydoc_markdown.__main__:main',
-        ],
-    },
+  },
 )
