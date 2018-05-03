@@ -1,10 +1,12 @@
-# Copyright (c) 2017  Niklas Rosenstein
+# The MIT License (MIT)
+#
+# Copyright (c) 2018 Niklas Rosenstein
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
+# of this software and associated documentation files (the "Software"), to
+# deal in the Software without restriction, including without limitation the
+# rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+# sell copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
 #
 # The above copyright notice and this permission notice shall be included in
@@ -14,29 +16,20 @@
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 # AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE.
-"""
-This module provides implementations to load documentation information from
-an identifier as it is specified in the `pydocmd.yml:generate` configuration
-key. A loader basically takes care of loading the documentation content for
-that name, but is not supposed to apply preprocessing.
-"""
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
 
-from __future__ import print_function
-from .document import Section
-from .imp import import_object_with_scope
+
 import inspect
 import types
 
-function_types = (types.FunctionType, types.LambdaType, types.MethodType,
-  types.BuiltinFunctionType, types.BuiltinMethodType)
-if hasattr(types, 'UnboundMethodType'):
-  function_types += (types.UnboundMethodType,)
-
 
 def trim(docstring):
+  """
+  Trims whitespace from docstrings.
+  """
+
   if not docstring:
     return ''
   lines = [x.rstrip() for x in docstring.split('\n')]
@@ -54,43 +47,6 @@ def trim(docstring):
     lines[i] = new_line
 
   return '\n'.join(lines)
-
-
-class PythonLoader(object):
-  """
-  Expects absolute identifiers to import with #import_object_with_scope().
-  """
-
-  def __init__(self, config):
-    self.config = config
-
-  def load_section(self, section):
-    """
-    Loads the contents of a #Section. The `section.identifier` is the name
-    of the object that we need to load.
-
-    # Arguments
-      section (Section): The section to load. Fill the `section.title` and
-        `section.content` values. Optionally, `section.loader_context` can
-        be filled with custom arbitrary data to reference at a later point.
-    """
-
-    assert section.identifier is not None
-    obj, scope = import_object_with_scope(section.identifier)
-
-    if '.' in section.identifier:
-      default_title = section.identifier.rsplit('.', 1)[1]
-    else:
-      default_title = section.identifier
-
-    section.title = getattr(obj, '__name__', default_title)
-    section.content = trim(get_docstring(obj))
-    section.loader_context = {'obj': obj, 'scope': scope}
-
-    # Add the function signature in a code-block.
-    if callable(obj):
-      sig = get_function_signature(obj, scope if inspect.isclass(scope) else None)
-      section.content = '```python\n{}\n```\n'.format(sig) + section.content
 
 
 def get_docstring(function):
@@ -136,3 +92,43 @@ def get_function_signature(function, owner_class=None, show_module=False):
     sig = '(' + ', '.join(args) + ')'
 
   return name + sig
+
+
+def dir_object(obj, sort_order='name'):
+  """
+  Lists the members of an object suitable for documentation purposes.
+  """
+
+  assert sort_order in ('name', 'line')
+
+  __all__ = getattr(obj, '__all__', None)
+
+  by_name = []
+  by_lineno = []
+
+  for key, value in getattr(obj, '__dict__', {}).items():
+    if (__all__ is None and key.startswith('_')) or \
+        (__all__ is not None and key not in __all__):
+      continue
+    if not getattr(value, '__doc__', None):
+      continue
+
+    # Skip imported module members.
+    if hasattr(value, '__module__') and \
+        isinstance(obj, types.ModuleType) and \
+        obj.__name__ != value.__module__:
+      continue
+
+    if sort_order == 'line':
+      try:
+        by_lineno.append((key, inspect.getsourcelines(value)[1]))
+      except TypeError:
+        # some members don't have (retrievable) line numbers (e.g., properties)
+        # so fall back to sorting those first, and by name
+        by_name.append(key)
+    else:
+      by_name.append(key)
+
+  by_name = sorted(by_name, key=lambda s: s.lower())
+  by_lineno = [key for key, lineno in sorted(by_lineno, key=lambda r: r[1])]
+  return by_name + by_lineno

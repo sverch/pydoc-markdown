@@ -1,123 +1,109 @@
-## pydocmd
+# pydoc-markdown
 
-&ndash; *insipired by the [Keras] Documentation*
+*Version 3.0.0-dev*
 
-Pydocmd uses [MkDocs] and extended [Markdown] syntax to generate beautiful
-Python API documentation.
+Pydoc-Markdown generates Python API documentation as Markdown files.
 
-  [MkDocs]: http://www.mkdocs.org/
-  [Markdown]: https://pythonhosted.org/Markdown/
-  [Extension API]: https://niklasrosenstein.github.io/pydoc-markdown/extensions/loader/
-  [Keras]: https://keras.io/
+```
+usage: pydoc-markdown [-h] [--plain] [--builddir BUILDDIR] [--indexer INDEXER]
+                      [--config CONFIG]
+                      [modules [modules ...]]
+```
 
-__Todo__
+> Note: Previous versions of Pydoc-Markdown used to automatically generate
+> HTML files with MkDocs. This is no longer supported as of 3.0.0. If you
+> prefer a single-command to generate the Markdown files and then running
+> a static site generator, use a script.
 
-- [x] Support `+` suffix to include documented members of a module/class
-- [ ] Expand and link cross-references (eg. `#SomeClass`)
-- [ ] Parse, format and link types listed in parameter/member/raise/return type
-      docstrings (eg. `someattr (int): This is...`)
+---
 
 ## Installation
 
+To install the latest release from Pip:
+
     pip install pydoc-markdown
-    pip install git+https://github.com/NiklasRosenstein/pydoc-markdown.git  # latest development version
+
+To get the latest development version, use:
+
+    pip install git+https://github.com/NiklasRosenstein/pydoc-markdown.git -b develop
+
+---
 
 ## Usage
 
-Pydocmd can generate plain Markdown files from Python modules using the
-`pydocmd simple` command. Specify one or more module names on the command-line.
-Supports the `+` syntax to include members of the module (or `++` to include
-members of the members, etc.)
+### Configuration
 
-    pydocmd simple mypackage+ mypackage.mymodule+ > docs.md
+Pydoc-Markdown is configured by creating a `pydoc-markdown.conf.py` file in
+your current working directory. Below is an example configuration file that
+also displays the default values (where applicable).
 
-Alternatively, pydocmd wraps the MkDocs command-line interface and generates
-the markdown pages beforehand. Simply use `pydocmd build` to build the
-documentation, or `pydocmd serve` to serve the documentation on a local HTTP
-server. The `pydocmd gh-deploy` from MkDocs is also supported.
+```python
+modules = [
+  'mymodule+',
+  'mymodule.bar+,mymodule.bar.SomeClass+'
+  ('testing.md', 'mymodule.testing++')  # Explicitly specify the document filename
+]
 
-A configuration file `pydocmd.yml` is required to use pydocmd in this mode.
-Below is an example configuration. To get started, create `docs/` directory
-and a file `pydocmd.yml` inside of it. Copy the configuration below and
-adjust it to your needs, then run `pydocmd build` from the `docs/` directory.
-
-```yaml
-site_name: "My Documentation"
-
-# This tells pydocmd which pages to generate from which Python modules,
-# functions and classes. At the first level is the page name, below that
-# is a tree of Python member names (modules, classes, etc.) that should be
-# documented. Higher indentation leads to smaller header size.
-generate:
-- baz/cool-stuff.md:
-  - foobar.baz:
-    - foobar.baz.CoolClass+     # (+ to include members)
-    - foobar.baz.some_function
-- baz/more-stuff.md:
-  - foobar.more++               # (++ to include members, and their members)
-
-# MkDocs pages configuration. The `<<` operator is sugar added by pydocmd
-# that allows you to use an external Markdown file (eg. your project's README)
-# in the documentation. The path must be relative to current working directory.
-pages:
-- Home: index.md << ../README.md
-- foobar.baz:
-  - Cool Stuff: baz/cool-stuff.md
-
-# These options all show off their default values. You don't have to add
-# them to your configuration if you're fine with the default.
-docs_dir: sources
-gens_dir: _build/pydocmd     # This will end up as the MkDocs 'docs_dir'
-site_dir: _build/site
-theme:    readthedocs
-loader:   pydocmd.loader.PythonLoader
-preprocessor: pydocmd.preprocessor.Preprocessor
-
-# Additional search path for your Python module. If you use Pydocmd from a
-# subdirectory of your project (eg. docs/), you may want to add the parent
-# directory here.
-additional_search_paths:
-- ..
+bulddir = 'build/pydoc-markdown'
+preprocessor = 'pydoc_markdown.core.python.Preprocessor'
+loader = 'pydoc_markdown.core.python.PythonLoader'
+renderer = 'pydoc_markdown.core.base.Renderer'
+indexer = 'pydoc_markdown.core.base.VoidIndexer'
 ```
 
-## Syntax
+### Documentation Syntax
 
-### Cross-references
+Pydoc-Markdown uses its own documentation syntax for creating cross-references.
+Support for Sphinx syntax is planned (see [#1]).
 
-Symbols in the same namespace may be referenced by using a hash-symbol (`#`)
-directly followed by the symbols' name, including relative references. Note that
-using parentheses for function names is encouraged and will be ignored and
-automatically added when converting docstrings. Examples: `#ClassName.member` or
-`#mod.function()`.
+  [#1]: https://github.com/NiklasRosenstein/pydoc-markdown/issues/1
 
-For absolute references for modules or members in names that are not available
-in the current global namespace, `#::mod.member` must be used (note the two
-preceeding two double-colons).
+#### Cross-references
 
-For long reference names where only some part of the name should be displayed,
-the syntax `#X~some.reference.name` can be used, where `X` is the number of
-elements to keep. If `X` is omitted, it will be assumed 1. Example:
-`#~some.reference.name` results in only `name` being displayed.
+Cross-references are specified in the format `#ID`, `#ID~text`, `#~ID` or
+`#ID#suffix`. The `ID` usually will be a Python function, class or module
+name. The ID may contain attribute lookups and trailing call parentheses
+"`()`". For absolute references, prefix the `ID` with two
+double-colons. Examples:
 
-In order to append additional characters that are not included in the actual
-reference name, another hash-symbol can be used, like `#Signal#s`.
+* `#SomeClass.member_method()`
+* `#SomeClass.member_method~some_method()`
+* `#~SomeClass.member_method()`
+* `#~::mymodule.SomeClass.member_method()`
 
-**pydoc-markdown** can be extended to find other cross-references using the
-[Extension API].
+#### Function and Class documentation
 
-### Sections
+Function arguments, members, return types and exception information can be
+documented in special Markdown titles. The rendering of the content following
+these titles depends on the title itself. Available special titles are:
 
-Sections can be generated with the Markdown `# <Title>` syntax. It is important
-to add a whitespace after the hash-symbol (`#`), as otherwise it would represent
-a cross-reference. Some special sections alter the rendered result of their
-content, including
+* `# Members`, `# Attributes` (1)
+* `# Parameters`, `# Arguments` (1)
+* `# Returns` (2)
+* `# Raises` (2)
 
-- Arguments (1)
-- Parameters (1)
-- Attributes (1)
-- Members (1)
-- Raises (2)
-- Returns (2)
+For function documentations, the exception and return type information can
+be placed in the same block as the parameters.
+
+Example 1:
+
+    # Parameters
+    a (int): Some integer.
+    return (int): Another integer
+    raise (ValueError): When something bad happens.
+
+Example 2:
+
+    # Paramters
+    a (int): Some integer.
+
+    # Returns
+    int: Another integer.
+
+    # Raises
+    ValueError: When something bad happens.
+
+_Formal specification_:
 
 (1): Lines beginning with `<ident> [(<type>[, ...])]:` are treated as
 argument/parameter or attribute/member declarations. Types listed inside the
@@ -131,7 +117,7 @@ Lines following a name's description are considered part of the most recent
 documentation unless separated by another declaration or an empty line. `<type>`
 placeholders can also be tuples in the form `(<type>[, ...])`.
 
-### Code Blocks
+#### Code Blocks
 
 GitHub-style Markdown code-blocks with language annotations can be used.
 
@@ -142,28 +128,4 @@ GitHub-style Markdown code-blocks with language annotations can be used.
 
 ---
 
-## Changes
-
-### v2.0.2 (tip)
-
-- Fix #25 -- Text is incorrectly rendered as code
-- Fix #26 -- Broken links for URLs with fragment identifiers
-- No longer transforms titles in a docstring that are indented (eg. to
-  avoid an indented code block with a `#` comment to be corrupted)
-
-### v2.0.1
-
-- Support `additional_search_path` key in configuration
-- Render headers as HTML `<hX>` tags rather than Markdown tags, so we
-  assign a proper ID to them
-- Fix #21 -- AttributeError: 'module' object has no attribute 'signature'
-- Now requires the `six` module
-- FIx #22 -- No blank space after header does not render codeblocks
-
-### v2.0.0
-
-- Complete overhaul of **pydoc-markdown** employing MkDocs and the Markdown module.
-
----
-
-<p align="center">Copyright &copy; 2017  Niklas Rosenstein</p>
+<p align="center">Copyright &copy; 2018 Niklas Rosenstein</p>

@@ -42,7 +42,7 @@ def readme():
 
 setup(
     name='pydoc-markdown',
-    version='2.0.2',
+    version='3.0.0-dev',
     description='Create Python API documentation in Markdown format',
     long_description=readme(),
     url='https://github.com/NiklasRosenstein/pydoc-markdown',
@@ -64,11 +64,11 @@ setup(
         'Programming Language :: Python :: 3.5',
     ],
     keywords='markdown pydoc generator docs documentation',
-    packages=['pydocmd'],
+    packages=['pydoc_markdown'],
     install_requires=['PyYAML', 'MkDocs', 'Markdown', 'six'],
     entry_points={
         'console_scripts': [
-            'pydocmd=pydocmd.__main__:main',
+            'pydoc-markdown=pydoc_markdown.__main__:main',
         ],
     },
 )
