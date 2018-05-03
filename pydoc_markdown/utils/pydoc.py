@@ -106,18 +106,24 @@ def dir_object(obj, sort_order='name'):
   by_name = []
   by_lineno = []
 
+
+  prefix = None
+  if isinstance(obj, types.ModuleType):
+    prefix = obj.__name__
+
+
   for key, value in getattr(obj, '__dict__', {}).items():
     if (__all__ is None and key.startswith('_')) or \
         (__all__ is not None and key not in __all__):
       continue
-    if not getattr(value, '__doc__', None):
+    if not getattr(value, '__doc__') or not callable(value):
       continue
 
     # Skip imported module members.
-    if hasattr(value, '__module__') and \
-        isinstance(obj, types.ModuleType) and \
-        obj.__name__ != value.__module__:
+    if isinstance(obj, types.ModuleType) and \
+        getattr(value, '__module__', None) != obj.__name__:
       continue
+
 
     if sort_order == 'line':
       try:

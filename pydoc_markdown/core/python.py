@@ -63,7 +63,11 @@ class PythonLoader(base.Loader):
     if depth > max_depth:
       return
 
-    sec = self._load_section(name, depth)
+    try:
+      sec = self._load_section(name, depth)
+    except Exception:
+      print('Error while loading "{}"'.format(name))
+      raise
     doc.add_section(sec)
 
     sort_order = getattr(self.config, 'sorting', 'line')
