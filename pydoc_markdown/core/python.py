@@ -48,6 +48,10 @@ class PythonLoader(base.Loader):
       default_title = name
 
     title = getattr(obj, '__name__', default_title)
+    if isinstance(obj, type):
+      title += ' objects'
+    else:
+      title += '()'
     content = trim(get_docstring(obj))
 
     # Add the function signature in a code-block.
