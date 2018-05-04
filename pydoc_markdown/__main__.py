@@ -82,8 +82,8 @@ def load_config(filename=None):
 
   d.setdefault('modules', [])
   d.setdefault('builddir', 'build/pydoc-markdown')
-  d.setdefault('loader', 'pydoc_markdown.core.python.PythonLoader')
-  d.setdefault('preprocessor', 'pydoc_markdown.core.python.Preprocessor')
+  d.setdefault('loader', 'pydoc_markdown.core.PythonLoader')
+  d.setdefault('preprocessor', 'pydoc_markdown.core.Preprocessor')
   d.setdefault('indexer', 'pydoc_markdown.core.base.VoidIndexer')
   d.setdefault('renderer', 'pydoc_markdown.core.base.Renderer')
 
