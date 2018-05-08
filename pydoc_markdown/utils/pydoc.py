@@ -94,7 +94,7 @@ def get_function_signature(function, owner_class=None, show_module=False):
   return name + sig
 
 
-def dir_object(obj, sort_order='name'):
+def dir_object(obj, sort_order='name', need_docstring=True):
   """
   Lists the members of an object suitable for documentation purposes.
   """
@@ -116,7 +116,9 @@ def dir_object(obj, sort_order='name'):
     if (__all__ is None and key.startswith('_')) or \
         (__all__ is not None and key not in __all__):
       continue
-    if not getattr(value, '__doc__') or not callable(value):
+    if not hasattr(value, '__doc__') or not callable(value):
+      continue
+    if hasattr(value, '__doc__') and need_docstring and not value.__doc__:
       continue
 
     # Skip imported module members.

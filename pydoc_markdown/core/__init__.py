@@ -75,7 +75,8 @@ class PythonLoader(base.Loader):
     doc.add_section(sec)
 
     sort_order = getattr(self.config, 'sorting', 'line')
-    for sub in dir_object(sec.loader_context['obj'], sort_order):
+    need_docstring = getattr(self.config, 'filter', ['docstring'])
+    for sub in dir_object(sec.loader_context['obj'], sort_order, need_docstring):
       sub = name + '.' + sub
       self._build_document(doc, sub, max_depth, depth+1)
     return doc
