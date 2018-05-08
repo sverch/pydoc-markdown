@@ -54,6 +54,11 @@ def get_argument_parser(prog):
   parser.add_argument('--builddir', help='Override the build directory.')
   parser.add_argument('--indexer', help='Override the indexer class.')
   parser.add_argument('--config', help='Override the configuration filename.')
+  parser.add_argument('--filter', help='Override the filter option. Must be '
+    'a comma-separated list of strings. If a string starts with a - sign, it '
+    'will be removed from the filter list again.')
+  parser.add_argument('--sorting', help='Override the sorting option. Must '
+    ' be "name" or "line".')
   return parser
 
 
@@ -86,6 +91,8 @@ def load_config(filename=None):
   d.setdefault('preprocessor', 'pydoc_markdown.core.Preprocessor')
   d.setdefault('indexer', 'pydoc_markdown.core.base.VoidIndexer')
   d.setdefault('renderer', 'pydoc_markdown.core.base.Renderer')
+  d.setdefault('sorting', 'line')
+  d.setdefault('filter', ['docstring'])
 
   return mod
 
@@ -112,6 +119,20 @@ def main(argv=None, prog=None, onreturn=None):
   modules = args.modules or config.modules
   if not modules:
     parser.error('no modules specified')
+
+  if args.sorting:
+    if args.sorting not in ('name', 'line'):
+      parser.error('invalid --sort: {!r}'.format(args.sorting))
+    config.sorting = args.sorting
+
+  if args.filter:
+    for item in args.filter.split(','):
+      if item.startswith('-'):
+        item = item[1:]
+        if item in config.filter:
+          config.filter.remove(item)
+      elif item not in config.filter:
+        config.filter.append(item)
 
   if isinstance(config.loader, str):
     config.loader = import_object(config.loader)()

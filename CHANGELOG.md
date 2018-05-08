@@ -5,6 +5,7 @@
 - No longer supports MkDocs natively, MkDocs needs to be invoked separately
 - CLI overhaul
 - Configuration is now a Python script `pydoc-markdown.conf.py`
+- Add `--sorting` and `--filter` options
 
 ### v2.0.4 (master)
 
