@@ -50,7 +50,7 @@ def trim(docstring):
 
 
 def get_docstring(function):
-  if hasattr(function, '__name__'):
+  if hasattr(function, '__name__') or hasattr(function, '__doc__'):
     return function.__doc__ or ''
   else:
     return function.__call__.__doc__ or ''
@@ -116,7 +116,7 @@ def dir_object(obj, sort_order='name', need_docstring=True):
     if (__all__ is None and key.startswith('_')) or \
         (__all__ is not None and key not in __all__):
       continue
-    if not hasattr(value, '__doc__') or not callable(value):
+    if not hasattr(value, '__doc__') or not (callable(value) or is_descriptor(value)):
       continue
     if hasattr(value, '__doc__') and need_docstring and not value.__doc__:
       continue
@@ -140,3 +140,7 @@ def dir_object(obj, sort_order='name', need_docstring=True):
   by_name = sorted(by_name, key=lambda s: s.lower())
   by_lineno = [key for key, lineno in sorted(by_lineno, key=lambda r: r[1])]
   return by_name + by_lineno
+
+
+def is_descriptor(x):
+  return hasattr(x, '__get__')
