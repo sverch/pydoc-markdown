@@ -1,4 +1,4 @@
-# The MIT License (MIT)
+# -*- coding: utf8 -*-
 #
 # Copyright (c) 2018 Niklas Rosenstein
 #
@@ -20,217 +20,244 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+"""
+This module provides the nodal representation of a document -- which is a
+rather high-level representation. It is not designed to parse any Markdown
+Syntax, but only the special syntax elements for Pydoc-Markdown.
 
-from __future__ import print_function
-from collections import OrderedDict
-from .base import gen_link_markup
-import os
+The idea is that every section can start out as a #Text node and preprocessors
+can then take this node, parse its contents and split it into new nodes if a
+special syntax is found (eg. into a #Text #CrossReference #Text sequence).
+"""
 
-
-class DocumentIndex(object):
-  """
-  The index manages all documents and sections globally. It keeps track of
-  the symbolic names allocated for the sections to be able to link to them
-  from other sections.
-
-  # Attributes
-  documents (dict):
-  sections (dict):
-  """
-
-  def __init__(self):
-    self.documents = OrderedDict()
-    self.sections = OrderedDict()
-
-  def add_document(self, document):
-    assert isinstance(document, Document), repr(document)
-    if not document.filename:
-      raise ValueError('Document.filename is not set')
-    assert isinstance(document.filename, str), repr(document.filename)
-    if document.filename in self.documents:
-      raise ValueError('Document "{}" already exists'.format(document.filename))
-    self.documents[document.filename] = document
-    for section in document.iter_sections():
-      if section.id:
-        self.sections[section.id] = section
-
-  def iter_documents(self):
-    return iter(self.documents.values())
-
-  def remove_documents(self, documents):
-    for doc in documents:
-      self.remove_sections(doc.sections)
-    self.documents = OrderedDict(
-      (k, v) for k, v in self.documents.items()
-      if v not in documents
-    )
-
-  def remove_sections(self, sections):
-    self.sections = {
-      k: v for k, v in self.sections.items()
-      if v not in sections
-    }
-
-
-class Document(object):
-  """
-  Represents a single document that may contain several #Section#s. Every
-  document *must* have a relative URL associated with it.
-
-  # Attributes
-
-  index (Index): The index that the document belongs to.
-
-  url (str): The relative URL of the document.
-  """
-
-  def __init__(self):
-    self.index = None
-    self.filename = None
-    self.sections = []
-
-  def iter_sections(self):
-    return iter(self.sections)
-
-  def add_section(self, section):
-    if self.index and section.id:
-      self.index.sections[section.id] = section
-    section.document = self
-    self.sections.append(section)
-
-  def remove(self):
-    if self.index:
-      self.index.remove_documents([self])
-    self.index = None
-
-  @classmethod
-  def join(cls, documents):
-    result = cls()
-    for doc in documents:
-      for section in doc.sections:
-        result.add_section(section.clone())
-    return result
-
-
-class Section(object):
-  """
-  A section represents a part of a #Document that can be linked to. It
-  contains Markdown-formatted content that will be rendered into a file
-  at some point.
-
-  # Attributes
-
-  doc (Document): The document that the section belongs to.
-
-  identifier (str, None):
-    The globally unique identifier of the section. This identifier usually
-    matches the name of the element that the section describes (eg. a class
-    or function) and will be used for cross-referencing.
-
-  title (str, None):
-    The title of the section. If specified, it will be rendered before
-    `section.content` and the header-size will depend on the `section.depth`.
-
-  depth (int):
-    The depth of the section, defaults to 1. Currently only affects the
-    header-size that is rendered for the `section.title`.
-
-  content (str): The Markdown-formatted content of the section.
-  """
-
-  def __init__(self, id, title, depth, content):
-    self.document = None
-    self.id = id
-    self.title = title
-    self.depth = depth
-    self.content = content
-
-  def clone(self):
-    return type(self)(self.id, self.title, self.depth, self.content)
-
-  def gen_link_markup(self, title):
-    """
-    Returns a string that links to this section using the pydoc-markdown
-    specific Markdown that will then be recognized by the indexer.
-    """
-
-    if self.id is None:
-      raise RuntimeError('Section has no id')
-    return gen_link_markup(title, self.id)
-
-  def remove(self):
-    if self.index:
-      self.index.remove_sections([self])
-    if self.document:
-      self.document.sections.remove(self)
-    self.document = None
-
-  @property
-  def index(self):
-    if not self.document:
-      return None
-    return self.document.index
-
-
+__all__ = ['Node', 'Text', 'CrossReference', 'Section',
+           'Document', 'DocumentRoot']
 
 import weakref
 
 
-class _Node(object):
+class Node(object):
   """
-  Represents a node in a document that can then be rendered into a format
-  such as Markdown.
+  Base class for a node being part of a document object model.
   """
 
   def __init__(self):
-    self.document = None
+    self._parent = None
+    self._children = []
+
+  @property
+  def parent(self):
+    return self._parent() if self._parent else None
+
+  @property
+  def children(self):
+    return self._children
+
+  def remove(self):
+    parent = self.parent
+    self._parent = None
+    if parent:
+      parent._children.remove(self)
+
+  def append(self, child):
+    if not isinstance(child, Node):
+      raise TypeError('expected Node instance, got {}'
+                      .format(type(child).__name__))
+    self._before_attach_to_parent(self)
+    child.remove()
+    child._parent = weakref.ref(self)
+    self._children.append(child)
+
+  def insert(self, index, child):
+    if not isinstance(child, Node):
+      raise TypeError('expected Node instance, got {}'
+                      .format(type(child).__name__))
+    self._before_attach_to_parent(self)
+    child.remove()
+    child._parent = weakref.ref(self)
+    self._children.insert(index, child)
+
+  def substitute(self, arg):
+    """
+    Substitute this node with the node or collection of nodes specified
+    with *arg*.
+    """
+
+    parent = self.parent
+    if not parent:
+      raise RuntimeError('can not substitute() -- self has no parent')
+
+    if isinstance(arg, Node):
+      arg = [arg]
+    else:
+      arg = list(arg)
+
+    for node in arg:
+      if not isinstance(node, Node):
+        raise TypeError('expected Node instance, got {}'
+                        .format(type(node).__name__))
+      node.remove()
+      node._parent = weakref.ref(parent)
+
+    index = parent._children.index(self)
+    parent._children[index:index+1] = arg
+    self._parent = None
+
+  def hierarchy(self, visitor=None, this=True):
+    """
+    Either returns a generator for the node's hierarchy or calls *visitor*
+    for every element in that hierarchy. If *this* is #True, self will be
+    yielded/visited as well.
+    """
+
+    def generator(node, this):
+      if this:
+        yield node
+      for child in node._children:
+        generator(child, True)
+
+    if visitor is None:
+      return generator(self, this)
+    else:
+      for node in generator(self, this):
+        visitor(node)
+
+  def _before_attach_to_parent(self, parent):
+    pass
+
+
+class Text(Node):
+  """
+  Represents a plain text block that will be rendered into the Markdown
+  document as-is.
+  """
+
+  def __init__(self, text):
+    super(Text, self).__init__()
+    self.text = text
+
+  def __repr__(self):
+    text = self.text
+    if len(text) > 20:
+      text = text[19:] + '…'
+    return 'Text(text={!r})'.format(text)
+
+  def append(self, child):
+    raise RuntimeError('Text can not have child elements.')
+
+  def insert(self, index, child):
+    raise RuntimeError('Text can not have child elements.')
+
+
+class CrossReference(Node):
+  """
+  Represents a cross-reference to another #Section.
+  """
+
+  def __init__(self, id, label=None):
+    super(CrossReference, self).__init__()
+    self.id = id
+    self.label = label
+
+  def __repr__(self):
+    return 'CrossReference(id={!r}, label={!r})'.format(self.id, self.label)
+
+
+class Section(Node):
+  """
+  Represents a section in a document. This could be a namespace, class,
+  function, enumeration or symbol. For all but the function type, the
+  section contains additional subsections.
+  """
+
+  def __init__(self, kind, id, label=None, signature=None):
+    super(Section, self).__init__()
+    self.kind = kind
+    self.id = id
+    self.label = label
+    self.signature = signature
+
+  def __repr__(self):
+    return 'Section(kind={!r}, id={!r}, label={!r})'.format(
+      self.kind, self.id, self.label)
 
   @property
   def document(self):
-    return self._document() if self._document else None
+    """
+    Returns the #Document that this section is contained in.
+    """
 
-  @document.setter
-  def document(self, doc):
-    if doc is not None and not isinstance(doc, Document):
-      raise TypeError('expected Document object')
-    self._document = weakref.ref(doc)
+    parent = self.parent
+    while parent:
+      if isinstance(parent, Document):
+        return parent
+      parent = parent.parent
+    return None
 
   @property
-  def children(self):
-    return []
+  def depth(self):
+    """
+    Returns the number of #Section parents this section has + 1.
+    """
+
+    count = 0
+    while self:
+      if isinstance(self, Section):
+        count += 1
+      self = self.parent
+    return count
+
+  def _before_attach_to_parent(self, parent):
+    if not isinstance(parent, (Document, Section)):
+      raise TypeError('Section can only be inserted under another Section '
+                      'or Document, found {}'.format(type(parent).__name__))
 
 
-class Symbol(_Node):
+class Document(Node):
   """
-  Represents a symbol that contains some documentation in the form of
-  other nodes. Every symbol should have a unique ID in order to be able
-  to resolve links between symbols with a #Link node.
+  Represents a document which in turn contains sections. Every document has
+  a *path* that is a slash-delimited string without file suffixes relative to
+  the root of all documents.
   """
 
-  def __init__(self, id, label):
-    super(Symbol, self).__init__()
-    self.id = id
-    self.label = label
-    self._children = []
+  def __init__(self, path):
+    super(Document, self).__init__()
+    self.path = path
 
   def __repr__(self):
-    return '<Symbol id={!r} label={!r}>'.format(self.id, self.label)
-
-  @property
-  def children(self):
-    return self._children
+    return 'Document(path={!r})'.format(self.path)
 
 
-class Paragraph(_Node):
+class DocumentRoot(Node):
   """
-  A paragraph is usually constructed from plain #Text nodes (some of which may
-  be Markdown formatted) or #Link nodes.
+  The root node that can contain multiple documents.
   """
 
-  def __init__(self):
-    super(Paragraph, self).__init__()
-    return self._children
+  def find_document(self, path, create=False):
+    for child in self.children:
+      if isinstance(child, Document) and child.path == path:
+        return child
+    if create:
+      child = Document(path)
+      self.append(child)
+    else:
+      child = None
+    return child
+
+  def find_section(self, id):
+    """
+    Finds the first occurence of the section with the specified *id*.
+    """
+
+    for node in self.hierarchy():
+      if isinstance(node, Section) and node.id == id:
+        return node
+    return None
 
   @property
-  def children(self):
-    return self._children
+  def documents(self):
+    result = []
+    for child in self.children:
+      if isinstance(child, Document):
+        result.append(child)
+    return result

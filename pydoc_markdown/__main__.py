@@ -21,6 +21,10 @@
 # IN THE SOFTWARE.
 
 from __future__ import print_function
+from pydoc_markdown.core import CompoundPreproc
+from pydoc_markdown.core.document import DocumentRoot, Document
+from pydoc_markdown.utils.imputils import import_object
+from pydoc_markdown.utils.decorators import onreturn
 
 import argparse
 import os
@@ -30,10 +34,6 @@ import subprocess
 import six
 import sys
 import types
-
-from .core.document import DocumentIndex, Document
-from .utils.imputils import import_object
-from .utils.decorators import onreturn
 
 
 PYDOC_MARKDOWN_CONFIG = 'pydoc-markdown.conf.py'
@@ -52,7 +52,6 @@ def get_argument_parser(prog):
   parser.add_argument('--plain', action='store_true',
     help='Generate a single Markdown file and write it to stdout.')
   parser.add_argument('--builddir', help='Override the build directory.')
-  parser.add_argument('--indexer', help='Override the indexer class.')
   parser.add_argument('--config', help='Override the configuration filename.')
   parser.add_argument('--filter', help='Override the filter option. Must be '
     'a comma-separated list of strings. If a string starts with a - sign, it '
@@ -88,9 +87,8 @@ def load_config(filename=None):
   d.setdefault('modules', [])
   d.setdefault('builddir', 'build/pydoc-markdown')
   d.setdefault('loader', 'pydoc_markdown.core.PythonLoader')
-  d.setdefault('preprocessor', 'pydoc_markdown.core.Preprocessor')
-  d.setdefault('indexer', 'pydoc_markdown.core.base.VoidIndexer')
-  d.setdefault('renderer', 'pydoc_markdown.core.base.Renderer')
+  d.setdefault('preprocessor', 'pydoc_markdown.core.PdmPreproc,pydoc_markdown.core.SphinxPreproc')
+  d.setdefault('renderer', 'pydoc_markdown.core.Renderer')
   d.setdefault('sorting', 'line')
   d.setdefault('filter', ['docstring'])
 
@@ -137,15 +135,18 @@ def main(argv=None, prog=None, onreturn=None):
   if isinstance(config.loader, str):
     config.loader = import_object(config.loader)()
   if isinstance(config.preprocessor, str):
-    config.preprocessor = import_object(config.preprocessor)()
-  if isinstance(config.indexer, str):
-    config.indexer = import_object(config.indexer)()
+    preprocs = [x.strip() for x in config.preprocessor.split(',') if x.strip()]
+    if len(preprocs) == 1:
+      config.preprocessor = import_object(preprocs[0])()
+    else:
+      config.preprocessor = CompoundPreproc()
+      for name in preprocs:
+        config.preprocessor.add(import_object(name)())
   if isinstance(config.renderer, str):
     config.renderer = import_object(config.renderer)()
 
   config.loader.config = config
   config.preprocessor.config = config
-  config.indexer.config = config
   config.renderer.config = config
 
   for i, module in enumerate(modules):
@@ -154,29 +155,22 @@ def main(argv=None, prog=None, onreturn=None):
       modules[i] = (basename + '.md', module)
 
   # Loader
-  index = DocumentIndex()
+  root = DocumentRoot()
   for filename, module in modules:
-    document = Document.join(config.loader.load_document(modspec) for
-      modspec in module.split(','))
-    document.filename = filename
-    index.add_document(document)
+    doc = Document(filename)  # TODO: Split extension..?
+    [config.loader.load_document(modspec, doc) for modspec in module.split(',')]
+    root.append(doc)
 
   # Preprocessor
-  for document in index.iter_documents():
-    config.preprocessor.process_document(index, document)
-    for section in document.iter_sections():
-      config.preprocessor.process_section(index, section)
+  config.preprocessor.preprocess(root)
 
   if args.plain:
-    document = Document.join(index.iter_documents())
-    document.filename = 'index.md'
-    index = DocumentIndex()
-    index.add_document(document)
-
-  # Indexer
-  config.indexer.process_index(index)
-  for document in index.iter_documents():
-    config.indexer.process_document(index, document)
+    document = Document('index')
+    for doc in root.documents:
+      for child in list(doc.children):
+        document.append(child)
+      doc.remove()
+    root.append(document)
 
   if args.plain:
     config.renderer.render_document(sys.stdout, document)

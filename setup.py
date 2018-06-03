@@ -18,37 +18,21 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from setuptools import setup, find_packages
-from codecs import open
-import os, sys
+import io
+import setuptools
 
+with io.open('README.md') as fp:
+  readme = fp.read()
 
-def readme():
-  if not os.path.isfile('README.md'):
-    return
-  if not any('dist' in x for x in sys.argv[1:]):
-    return
+with io.open('requirements.txt') as fp:
+  requirements = fp.readlines()
 
-  if os.system('pandoc -s README.md -o README.rst') != 0:
-    print('-----------------------------------------------------------------')
-    print('WARNING: README.rst could not be generated, pandoc command failed')
-    print('-----------------------------------------------------------------')
-    if sys.stdout.isatty():
-      input("Enter to continue... ")
-  else:
-    print("Generated README.rst with Pandoc")
-
-  if os.path.isfile('README.rst'):
-    with open('README.rst') as fp:
-      return fp.read()
-  return ''
-
-
-setup(
+setuptools.setup(
   name='pydoc-markdown',
   version='3.0.0-dev',
   description='Create Python API documentation in Markdown format',
-  long_description=readme(),
+  long_description=readme,
+  long_description_content_type='text/markdown',
   url='https://github.com/NiklasRosenstein/pydoc-markdown',
   author='Niklas Rosenstein',
   author_email='rosensteinniklas@gmail.com',
@@ -68,11 +52,11 @@ setup(
     'Programming Language :: Python :: 3.5',
   ],
   keywords='markdown pydoc generator docs documentation',
-  packages=['pydoc_markdown'],
-  install_requires=['six'],
-  entry_points={
-    'console_scripts': [
+  packages=setuptools.find_packages(),
+  install_requires=requirements,
+  entry_points=dict(
+    console_scripts=[
       'pydoc-markdown=pydoc_markdown.__main__:main',
-    ],
-  },
+    ]
+  ),
 )
