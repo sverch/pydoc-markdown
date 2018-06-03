@@ -198,7 +198,7 @@ class PdmPreproc(nr.interface.Implementation):
     return current_section
 
   def _preprocess_refs(self, content, nodes):
-    expr = re.compile('(?P<prefix>^| |\t)#(?P<ref>[\w\d\._]+)(?P<parens>\(\))?')
+    expr = re.compile('(?P<prefix>^| |\t)#(?P<ref>[\w\d\._]+)(?P<parens>\(\))?', re.M)
     index = 0
     while True:
       match = expr.search(content, index)
