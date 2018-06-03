@@ -147,9 +147,43 @@ class PdmPreproc(nr.interface.Implementation):
 
       # Raises
       ValueError: If something bad happens.
+
+  # Options
+
+  pdm_reorganize (bool):
+    Reorganizes the sections in the document so they are grouped for module
+    level data members, functions and classes. (#True by default)
   """
 
   nr.interface.implements(ITextPreprocessor)
+
+  def preprocess(self, root):
+    ITextPreprocessor.preprocess(self, root)
+    if getattr(self.config, 'pdm_reorganize', True):
+      for doc in root.documents:
+        for module in (x for x in doc.children if x.kind == 'module'):
+          classes = []
+          functions = []
+          other = []
+          for section in list(module.children):
+            if not isinstance(section, Section): continue
+            if section.kind == 'class': classes.append(section)
+            elif section.kind == 'function': functions.append(section)
+            else: other.append(section)
+            section.remove()
+
+          if other:
+            section = Section(None, 'data-members', 'Data Members')
+            [section.append(x) for x in other]
+            module.append(section)
+          if functions:
+            section = Section(None, 'functions', 'Functions')
+            [section.append(x) for x in functions]
+            module.append(section)
+          if classes:
+            section = Section(None, 'classes', 'Classes')
+            [section.append(x) for x in classes]
+            module.append(section)
 
   def preprocess_text(self, node):
     """
@@ -266,7 +300,7 @@ class Renderer(nr.interface.Implementation):
       for section in doc.hierarchy(filter=lambda x: isinstance(x, Section)):
         if section.depth > toc_depth: continue
         fp.write('    ' * (section.depth - 1))
-        fp.write('* [{}](#{})'.format(section.label, section.id))
+        fp.write('* [{}](#py-{})'.format(section.label, section.id))
         fp.write('\n')
       fp.write('\n')
 
@@ -278,10 +312,10 @@ class Renderer(nr.interface.Implementation):
         self.render_node(fp, child)
     elif isinstance(node, Section):
       prefix = ''
-      if getattr(self.config, 'render_section_kind', True):
+      if getattr(self.config, 'render_section_kind', True) and node.kind:
         prefix = '<small>{}</small> '.format(node.kind)
       print(
-        '<h{depth} id="{id}">{prefix}{title}</h{depth}>\n'.format(
+        '<h{depth} id="py-{id}">{prefix}{title}</h{depth}>\n'.format(
           prefix=prefix,
           depth=node.depth,
           id=node.id,

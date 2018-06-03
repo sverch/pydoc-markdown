@@ -68,10 +68,12 @@ class ITextPreprocessor(IPreprocessor):
 
   @nr.interface.default
   def preprocess(self, root):
-    if isinstance(root, Text):
-      self.preprocess_text(root)
-    for child in list(root.children):
-      self.preprocess(child)
+    def recursion(node):
+      if isinstance(node, Text):
+        self.preprocess_text(node)
+      for child in list(node.children):
+        recursion(child)
+    recursion(root)
 
   def preprocess_text(self, text_node):
     pass
