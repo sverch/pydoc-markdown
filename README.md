@@ -49,9 +49,9 @@ modules = [
 ]
 
 bulddir = 'build/pydoc-markdown'
-preprocessor = 'pydoc_markdown.core.python.Preprocessor'
-loader = 'pydoc_markdown.core.python.PythonLoader'
-renderer = 'pydoc_markdown.core.base.Renderer'
+loader = 'pydoc_markdown.core.PythonLoader'
+preprocessor = 'pydoc_markdown.core.PdmPreproc,pydoc_markdown.core.SphinxPreproc'
+renderer = 'pydoc_markdown.core.Renderer'
 ```
 
 ### Documentation Syntax
