@@ -180,7 +180,6 @@ def main(argv=None, prog=None, onreturn=None):
       makedirs(os.path.dirname(filename))
       with open(filename, 'w') as out:
         config.renderer.render_document(out, document)
-    config.indexer.write_additional_files(index)
 
 
 if __name__ == '__main__':

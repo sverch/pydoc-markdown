@@ -5,8 +5,7 @@ provides a new documentation syntax while also supporting a subset of the
 Sphinx documentation format.
 
 ```
-usage: pydoc-markdown [-h] [--plain] [--builddir BUILDDIR] [--indexer INDEXER]
-                      [--config CONFIG]
+usage: pydoc-markdown [-h] [--plain] [--builddir BUILDDIR] [--config CONFIG]
                       [modules [modules ...]]
 ```
 
@@ -53,7 +52,6 @@ bulddir = 'build/pydoc-markdown'
 preprocessor = 'pydoc_markdown.core.python.Preprocessor'
 loader = 'pydoc_markdown.core.python.PythonLoader'
 renderer = 'pydoc_markdown.core.base.Renderer'
-indexer = 'pydoc_markdown.core.base.VoidIndexer'
 ```
 
 ### Documentation Syntax
