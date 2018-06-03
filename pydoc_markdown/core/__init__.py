@@ -52,7 +52,7 @@ class PythonLoader(nr.interface.Implementation):
       default_title = ident
 
     title = getattr(obj, '__name__', default_title)
-    if inspect.isfunction(title):
+    if not inspect.isclass(obj) and callable(obj):
       title += '()'
 
     if inspect.isclass(obj):
@@ -235,6 +235,18 @@ class SphinxPreproc(nr.interface.Implementation):
 class Renderer(nr.interface.Implementation):
   """
   The default renderer implementation.
+
+  # Options
+
+  render_toc (bool):
+    Render a table of contents in every document (#Trueby default).
+  render_toc_depth (int):
+    The maximum depth of the table of contents. (2 by default).
+  render_section_kind (bool):
+    Render the section kind into every header. (#True by default).
+  render_signature_block (bool):
+    Render a function signature in a code block. If disabled, the
+    signature will instead be rendered in a blockquote. (#False by default)
   """
 
   nr.interface.implements(IRenderer)
@@ -243,10 +255,21 @@ class Renderer(nr.interface.Implementation):
   def render(self, directory, root):
     for document in root.documents:
       with open(os.path.join(directory, doc.path + '.md'), 'w') as fp:
-        self.render_node(fp, document)
+        self.render_document(fp, document)
 
   @nr.interface.override
   def render_document(self, fp, doc):
+    render_toc = getattr(self.config, 'render_toc', True)
+    toc_depth = getattr(self.config, 'render_toc_depth', 2)
+    if render_toc:
+      fp.write('__Table of Contents__\n\n')
+      for section in doc.hierarchy(filter=lambda x: isinstance(x, Section)):
+        if section.depth > toc_depth: continue
+        fp.write('    ' * (section.depth - 1))
+        fp.write('* [{}](#{})'.format(section.label, section.id))
+        fp.write('\n')
+      fp.write('\n')
+
     self.render_node(fp, doc)
 
   def render_node(self, fp, node):
@@ -254,9 +277,12 @@ class Renderer(nr.interface.Implementation):
       for child in node.children:
         self.render_node(fp, child)
     elif isinstance(node, Section):
+      prefix = ''
+      if getattr(self.config, 'render_section_kind', True):
+        prefix = '<small>{}</small> '.format(node.kind)
       print(
-        '<h{depth} id="{id}"><small>{kind}</small> {title}</h{depth}>\n'.format(
-          kind=node.kind,
+        '<h{depth} id="{id}">{prefix}{title}</h{depth}>\n'.format(
+          prefix=prefix,
           depth=node.depth,
           id=node.id,
           title=node.label
@@ -264,7 +290,10 @@ class Renderer(nr.interface.Implementation):
         file=fp
       )
       if node.signature:
-        fp.write('> `{}`\n\n'.format(node.signature))
+        if getattr(self.config, 'render_signature_block', True):
+          fp.write('```python\n{}\n```\n'.format(node.signature))
+        else:
+          fp.write('> `{}`\n\n'.format(node.signature))
       for child in node.children:
         self.render_node(fp, child)
     elif isinstance(node, Text):

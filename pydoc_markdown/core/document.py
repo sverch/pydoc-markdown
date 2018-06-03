@@ -103,7 +103,7 @@ class Node(object):
     parent._children[index:index+1] = arg
     self._parent = None
 
-  def hierarchy(self, visitor=None, this=True):
+  def hierarchy(self, visitor=None, filter=None, this=True):
     """
     Either returns a generator for the node's hierarchy or calls *visitor*
     for every element in that hierarchy. If *this* is #True, self will be
@@ -111,10 +111,10 @@ class Node(object):
     """
 
     def generator(node, this):
-      if this:
+      if this and (not filter or filter(node)):
         yield node
       for child in node._children:
-        generator(child, True)
+        for x in generator(child, True): yield x
 
     if visitor is None:
       return generator(self, this)
