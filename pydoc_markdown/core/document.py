@@ -216,8 +216,9 @@ class Section(Node):
 class Document(Node):
   """
   Represents a document which in turn contains sections. Every document has
-  a *path* that is a slash-delimited string without file suffixes relative to
-  the root of all documents.
+  a *path* that is a slash-delimited string that represents the relative
+  path of the document inside the build directory (usually including the
+  `.md` suffix).
   """
 
   def __init__(self, path):

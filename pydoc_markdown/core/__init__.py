@@ -121,7 +121,6 @@ class CompoundPreproc(nr.interface.Implementation):
       preproc.preprocess(root)
 
 
-
 class PdmPreproc(nr.interface.Implementation):
   """
   This class implements the basic Pydoc-Markdown preprocessor.
@@ -202,7 +201,7 @@ class PdmPreproc(nr.interface.Implementation):
     expr = re.compile('(?P<prefix>^| |\t)#(?P<ref>[\w\d\._]+)(?P<parens>\(\))?')
     index = 0
     while True:
-      match = expr.match(content, index)
+      match = expr.search(content, index)
       if not match:
         nodes.append(Text(content[index:]))
         break
@@ -214,11 +213,15 @@ class PdmPreproc(nr.interface.Implementation):
         ref = ref[:-1]
         has_trailing_dot = True
 
+      if match.start() > index:
+        nodes.append(Text(content[index:match.start()]))
       if match.group('prefix'):
         nodes.append(Text(match.group('prefix')))
       nodes.append(CrossReference(ref, '{}{}'.format(ref, parens)))
       if has_trailing_dot:
         nodes.append(Text('.'))
+
+      index = match.end()
 
 
 class SphinxPreproc(nr.interface.Implementation):
