@@ -170,3 +170,67 @@ class Section(object):
     if not self.document:
       return None
     return self.document.index
+
+
+
+import weakref
+
+
+class _Node(object):
+  """
+  Represents a node in a document that can then be rendered into a format
+  such as Markdown.
+  """
+
+  def __init__(self):
+    self.document = None
+
+  @property
+  def document(self):
+    return self._document() if self._document else None
+
+  @document.setter
+  def document(self, doc):
+    if doc is not None and not isinstance(doc, Document):
+      raise TypeError('expected Document object')
+    self._document = weakref.ref(doc)
+
+  @property
+  def children(self):
+    return []
+
+
+class Symbol(_Node):
+  """
+  Represents a symbol that contains some documentation in the form of
+  other nodes. Every symbol should have a unique ID in order to be able
+  to resolve links between symbols with a #Link node.
+  """
+
+  def __init__(self, id, label):
+    super(Symbol, self).__init__()
+    self.id = id
+    self.label = label
+    self._children = []
+
+  def __repr__(self):
+    return '<Symbol id={!r} label={!r}>'.format(self.id, self.label)
+
+  @property
+  def children(self):
+    return self._children
+
+
+class Paragraph(_Node):
+  """
+  A paragraph is usually constructed from plain #Text nodes (some of which may
+  be Markdown formatted) or #Link nodes.
+  """
+
+  def __init__(self):
+    super(Paragraph, self).__init__()
+    return self._children
+
+  @property
+  def children(self):
+    return self._children
