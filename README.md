@@ -1,8 +1,8 @@
-# pydoc-markdown
+# Pydoc-Markdown
 
-*Version 3.0.0-dev*
-
-Pydoc-Markdown generates Python API documentation as Markdown files.
+Pydoc-Markdown generates Python API documentation in Markdown format. It
+provides a new documentation syntax while also supporting a subset of the
+Sphinx documentation format.
 
 ```
 usage: pydoc-markdown [-h] [--plain] [--builddir BUILDDIR] [--indexer INDEXER]
@@ -10,10 +10,15 @@ usage: pydoc-markdown [-h] [--plain] [--builddir BUILDDIR] [--indexer INDEXER]
                       [modules [modules ...]]
 ```
 
-> Note: Previous versions of Pydoc-Markdown used to automatically generate
-> HTML files with MkDocs. This is no longer supported as of 3.0.0. If you
-> prefer a single-command to generate the Markdown files and then running
-> a static site generator, use a script.
+__Table of Contents__
+
+* [Installation](#installation)
+* [Usage](#usage)
+  * [Configuration](#configuration)
+  * [Documentation Syntax](#documentation-syntax)
+  * [Cross-references](#cross-references)
+  * [Function and Class documentation](#function-and-class-documentation)
+  * [Code Blocks](#code-blocks)
 
 ---
 
