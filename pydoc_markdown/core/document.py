@@ -93,6 +93,7 @@ class Node(object):
         remove.append(child)
       elif text:
         self.insert(self._children.index(child), Text(text))
+        text = ''
       child.collapse_text()
     if text:
       self.append(Text(text))

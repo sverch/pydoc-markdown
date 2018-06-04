@@ -177,8 +177,8 @@ def main(argv=None, prog=None, onreturn=None):
   if args.plain:
     config.renderer.render_document(args.output or sys.stdout, document)
   else:
-    for filename, document in index.documents.items():
-      filename = os.path.join(config.builddir, filename)
+    for document in root.documents:
+      filename = os.path.join(config.builddir, document.path)
       makedirs(os.path.dirname(filename))
       with open(filename, 'w') as out:
         config.renderer.render_document(out, document)
