@@ -162,28 +162,7 @@ class PdmPreproc(nr.interface.Implementation):
     if getattr(self.config, 'pdm_reorganize', True):
       for doc in root.documents:
         for module in (x for x in doc.children if x.kind == 'module'):
-          classes = []
-          functions = []
-          other = []
-          for section in list(module.children):
-            if not isinstance(section, Section): continue
-            if section.kind == 'class': classes.append(section)
-            elif section.kind == 'function': functions.append(section)
-            else: other.append(section)
-            section.remove()
-
-          if other:
-            section = Section(None, 'data-members', 'Data Members')
-            [section.append(x) for x in other]
-            module.append(section)
-          if functions:
-            section = Section(None, 'functions', 'Functions')
-            [section.append(x) for x in functions]
-            module.append(section)
-          if classes:
-            section = Section(None, 'classes', 'Classes')
-            [section.append(x) for x in classes]
-            module.append(section)
+          self._reorganize_module(module)
 
   def preprocess_text(self, node):
     """
@@ -256,6 +235,31 @@ class PdmPreproc(nr.interface.Implementation):
         nodes.append(Text('.'))
 
       index = match.end()
+
+  def _reorganize_module(self, module):
+    assert isinstance(module, Section)
+    classes = []
+    functions = []
+    other = []
+    for section in list(module.children):
+      if not isinstance(section, Section): continue
+      if section.kind == 'class': classes.append(section)
+      elif section.kind == 'function': functions.append(section)
+      else: other.append(section)
+      section.remove()
+
+    if other:
+      section = Section(None, 'data-members', 'Data Members')
+      [section.append(x) for x in other]
+      module.append(section)
+    if functions:
+      section = Section(None, 'functions', 'Functions')
+      [section.append(x) for x in functions]
+      module.append(section)
+    if classes:
+      section = Section(None, 'classes', 'Classes')
+      [section.append(x) for x in classes]
+      module.append(section)
 
 
 class SphinxPreproc(nr.interface.Implementation):
