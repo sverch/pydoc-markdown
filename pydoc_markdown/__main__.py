@@ -51,6 +51,8 @@ def get_argument_parser(prog):
     'account. Use ++ to include class members.')
   parser.add_argument('--plain', action='store_true',
     help='Generate a single Markdown file and write it to stdout.')
+  parser.add_argument('-o', '--output', type=argparse.FileType('w'), help=
+    'The output file for the --plain mode.')
   parser.add_argument('--builddir', help='Override the build directory.')
   parser.add_argument('--config', help='Override the configuration filename.')
   parser.add_argument('--filter', help='Override the filter option. Must be '
@@ -173,7 +175,7 @@ def main(argv=None, prog=None, onreturn=None):
     root.append(document)
 
   if args.plain:
-    config.renderer.render_document(sys.stdout, document)
+    config.renderer.render_document(args.output or sys.stdout, document)
   else:
     for filename, document in index.documents.items():
       filename = os.path.join(config.builddir, filename)
