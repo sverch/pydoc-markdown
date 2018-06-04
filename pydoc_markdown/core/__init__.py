@@ -263,11 +263,67 @@ class PdmPreproc(nr.interface.Implementation):
 
 
 class SphinxPreproc(nr.interface.Implementation):
-  nr.interface.implements(IPreprocessor)
+  nr.interface.implements(ITextPreprocessor)
 
   @nr.interface.override
-  def preprocess(self, root):
-    pass # TODO
+  def preprocess_text(self, node):
+    nodes = []  # A list of nodes that act as a substitute.
+    in_codeblock = False
+    keyword = None
+    components = {}
+
+    for line in node.text.split('\n'):
+      if line.startswith("```"):
+        in_codeblock = not in_codeblock
+
+      if not in_codeblock:
+        match = re.match(r':(?:param|parameter)\s+(\w+)\s*:(.*)?$', line)
+        if match:
+          keyword = 'Arguments'
+          param = match.group(1)
+          text = match.group(2)
+          text = text.strip()
+
+          component = components.get(keyword, [])
+          component.append('- `{}`: {}'.format(param, text))
+          components[keyword] = component
+          continue
+
+        match = re.match(r':(?:return|returns)\s*:(.*)?$', line)
+        if match:
+          keyword = 'Returns'
+          text = match.group(1)
+          text = text.strip()
+
+          component = components.get(keyword, [])
+          component.append(text)
+          components[keyword] = component
+          continue
+
+        match = re.match(':(?:raises|raise)\s+(\w+)\s*:(.*)?$', line)
+        if match:
+          keyword = 'Raises'
+          exception = match.group(1)
+          text = match.group(2)
+          text = text.strip()
+
+          component = components.get(keyword, [])
+          component.append('- `{}`: {}'.format(exception, text))
+          components[keyword] = component
+          continue
+
+      if keyword is not None:
+        components[keyword].append(line)
+      else:
+        nodes.append(Text(line + '\n'))
+
+    for key, items in components.items():
+      if not items: continue
+      nodes.append(Text('\n\n'))
+      nodes.append(Text('**{}**:\n'.format(key)))
+      nodes.extend(Text(x + '\n') for x in items)
+
+    node.substitute(nodes)
 
 
 class Renderer(nr.interface.Implementation):

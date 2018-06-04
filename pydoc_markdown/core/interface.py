@@ -74,6 +74,7 @@ class ITextPreprocessor(IPreprocessor):
       for child in list(node.children):
         recursion(child)
     recursion(root)
+    root.collapse_text()
 
   def preprocess_text(self, text_node):
     pass

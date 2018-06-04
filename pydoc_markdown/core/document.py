@@ -59,6 +59,9 @@ class Node(object):
     if parent:
       parent._children.remove(self)
 
+  def _before_attach_to_parent(self, parent):
+    pass
+
   def append(self, child):
     if not isinstance(child, Node):
       raise TypeError('expected Node instance, got {}'
@@ -76,6 +79,25 @@ class Node(object):
     child.remove()
     child._parent = weakref.ref(self)
     self._children.insert(index, child)
+
+  def collapse_text(self):
+    """
+    Collapse multiple #Text nodes in the children of this node to one.
+    """
+
+    text = ''
+    remove = []
+    for child in list(self._children):
+      if isinstance(child, Text):
+        text += child.text
+        remove.append(child)
+      elif text:
+        self.insert(self._children.index(child), Text(text))
+      child.collapse_text()
+    if text:
+      self.append(Text(text))
+    for node in remove:
+      node.remove()
 
   def substitute(self, arg):
     """
@@ -122,9 +144,6 @@ class Node(object):
       for node in generator(self, this):
         visitor(node)
 
-  def _before_attach_to_parent(self, parent):
-    pass
-
 
 class Text(Node):
   """
@@ -139,7 +158,7 @@ class Text(Node):
   def __repr__(self):
     text = self.text
     if len(text) > 20:
-      text = text[19:] + '…'
+      text = text[:19] + '…'
     return 'Text(text={!r})'.format(text)
 
   def append(self, child):
