@@ -31,7 +31,9 @@ import os
 import shutil
 import signal
 import subprocess
+import shlex
 import six
+import subprocess
 import sys
 import types
 
@@ -69,7 +71,7 @@ def get_argument_parser(prog):
   return parser
 
 
-def load_config(filename=None):
+def load_config(filename=None, quiet=False):
   """
   Loads the pydoc-markdown Python configuration file and initializes the
   default values.
@@ -84,6 +86,15 @@ def load_config(filename=None):
   mod = types.ModuleType('pydoc-markdown-config')
   mod.__file__ = filename
   d = vars(mod)
+
+
+  def call(cmd, *args, **kwargs):
+    if not quiet:
+      print('call', ' '.join(shlex.quote(x) for x in cmd))
+    subprocess.call(cmd, *args, **kwargs)
+
+  d['os'] = os
+  d['call'] = call
 
   try:
     with open(filename) as fp:
@@ -122,7 +133,7 @@ def main(argv=None, prog=None, onreturn=None):
 
   parser = get_argument_parser(prog)
   args = parser.parse_args(argv)
-  config = load_config(args.config)
+  config = load_config(args.config, args.quiet)
 
   modules = args.modules or config.modules
   add_config_lines = [x for x in modules if '=' in x]
@@ -203,11 +214,18 @@ def main(argv=None, prog=None, onreturn=None):
       with open(filename, 'w') as out:
         config.renderer.render_document(out, document)
 
-    for src, dst in getattr(config, 'copy_files', []):
+    for item in getattr(config, 'copy_files', []):
+      if isinstance(item, str):
+        src = dst = item
+      else:
+        src, dst = item
       dst = os.path.join(config.builddir, dst)
       if not args.quiet:
         print('copy', dst)
       shutil.copy(src, dst)
+
+    if config.on_complete:
+      config.on_complete()
 
 
 if __name__ == '__main__':

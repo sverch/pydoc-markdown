@@ -1,4 +1,6 @@
 
+docprefix = 'content'
+
 modules = [
   'pydoc_markdown.core++',
   'pydoc_markdown.core.interface++',
@@ -9,5 +11,10 @@ modules = [
 ]
 
 copy_files = [
-  ('README.md', 'index.md')
+  ('README.md', 'content/index.md'),
+  '.statigen.toml'
 ]
+
+
+def on_complete():
+  call(['statigen'], cwd=builddir)
