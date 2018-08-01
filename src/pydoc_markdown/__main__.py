@@ -60,6 +60,8 @@ def get_argument_parser(prog):
     'will be removed from the filter list again.')
   parser.add_argument('--sorting', help='Override the sorting option. Must '
     ' be "name" or "line".')
+  parser.add_argument('--module-path', default=[], action='append',
+      help='Add additional module search paths.')
   return parser
 
 
@@ -87,9 +89,10 @@ def load_config(filename=None):
       raise
 
   d.setdefault('modules', [])
+  d.setdefault('module_path', ['.'])
   d.setdefault('builddir', 'build/pydoc-markdown')
   d.setdefault('loader', 'pydoc_markdown.core.PythonLoader')
-  d.setdefault('preprocessor', 'pydoc_markdown.core.PydocMarkdownPreprocesor,pydoc_markdown.core.SphinxMarkdownPreprocessor')
+  d.setdefault('preprocessor', 'pydoc_markdown.core.PydocMarkdownPreprocessor,pydoc_markdown.core.SphinxMarkdownPreprocessor')
   d.setdefault('renderer', 'pydoc_markdown.core.Renderer')
   d.setdefault('sorting', 'line')
   d.setdefault('filter', ['docstring'])
@@ -124,6 +127,9 @@ def main(argv=None, prog=None, onreturn=None):
     if args.sorting not in ('name', 'line'):
       parser.error('invalid --sort: {!r}'.format(args.sorting))
     config.sorting = args.sorting
+
+  config.module_path = config.module_path + args.module_path
+  sys.path = config.module_path + sys.path
 
   if args.filter:
     for item in args.filter.split(','):
