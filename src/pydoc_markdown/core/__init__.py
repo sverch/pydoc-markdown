@@ -419,8 +419,13 @@ class Renderer(nr.interface.Implementation):
     elif isinstance(node, Text):
       fp.write(node.text)
     elif isinstance(node, CrossReference):
-      # TODO: Actually generate links to other documents.
-      fp.write('`{}`'.format(node.label or node.id))
+      section = node.resolve()
+      if not section:
+        print('warning: unable to resolve cross-reference:', node)
+        fp.write('`{}`'.format(node.label or node.id))
+      else:
+        path = node.document.path_to(section.document).replace(os.sep, '/')
+        fp.write('[`{}`]({}#py:{})'.format(node.label or node.id, path, section.id))
     else:
       print('warning: unexpected node in Renderer.render_node(): {}'.format(node))
 

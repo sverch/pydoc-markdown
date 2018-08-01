@@ -58,6 +58,12 @@ class Node(object):
     return self._parent() if self._parent else None
 
   @property
+  def root(self):
+    while self and self.parent:
+      self = self.parent
+    return self
+
+  @property
   def children(self):
     return self._children
 
@@ -157,7 +163,23 @@ class Node(object):
         visitor(node)
 
 
-class Text(Node):
+class _DocumentContainedNode(Node):
+
+  @property
+  def document(self):
+    """
+    Returns the #Document that this section is contained in.
+    """
+
+    parent = self.parent
+    while parent:
+      if isinstance(parent, Document):
+        return parent
+      parent = parent.parent
+    return None
+
+
+class Text(_DocumentContainedNode):
   """
   Represents a plain text block that will be rendered into the Markdown
   document as-is.
@@ -180,7 +202,7 @@ class Text(Node):
     raise RuntimeError('Text can not have child elements.')
 
 
-class CrossReference(Node):
+class CrossReference(_DocumentContainedNode):
   """
   Represents a cross-reference to another #Section.
   """
@@ -193,8 +215,16 @@ class CrossReference(Node):
   def __repr__(self):
     return 'CrossReference(id={!r}, label={!r})'.format(self.id, self.label)
 
+  def resolve(self):
+    parent = self.parent
+    while parent:
+      for section in parent.hierarchy(filter=lambda x: isinstance(x, Section)):
+        if section.id == self.id or section.id.endswith('.' + self.id):
+          return section
+      parent = parent.parent
 
-class Section(Node):
+
+class Section(_DocumentContainedNode):
   """
   Represents a section in a document. This could be a namespace, class,
   function, enumeration or symbol. For all but the function type, the
@@ -211,19 +241,6 @@ class Section(Node):
   def __repr__(self):
     return 'Section(kind={!r}, id={!r}, label={!r})'.format(
       self.kind, self.id, self.label)
-
-  @property
-  def document(self):
-    """
-    Returns the #Document that this section is contained in.
-    """
-
-    parent = self.parent
-    while parent:
-      if isinstance(parent, Document):
-        return parent
-      parent = parent.parent
-    return None
 
   @property
   def depth(self):
@@ -262,6 +279,8 @@ class Document(Node):
     Returns the relative path from this document to *doc*.
     """
 
+    if doc == self:
+      return ''
     return os.path.relpath(doc.path, os.path.dirname(self.path))
 
   def __repr__(self):
