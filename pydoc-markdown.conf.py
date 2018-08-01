@@ -7,3 +7,7 @@ modules = [
   'pydoc_markdown.utils.imputils++',
   'pydoc_markdown.utils.pydoc++',
 ]
+
+copy_files = [
+  ('README.md', 'index.md')
+]

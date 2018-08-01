@@ -65,6 +65,7 @@ def get_argument_parser(prog):
     ' be "name" or "line".')
   parser.add_argument('--module-path', default=[], action='append',
       help='Add additional module search paths.')
+  parser.add_argument('--quiet', action='store_true')
   return parser
 
 
@@ -94,6 +95,7 @@ def load_config(filename=None):
   d.setdefault('modules', [])
   d.setdefault('module_path', ['.'])
   d.setdefault('builddir', 'build/pydoc-markdown')
+  d.setdefault('docprefix', '')
   d.setdefault('loader', 'pydoc_markdown.core.PythonLoader')
   d.setdefault('preprocessor', 'pydoc_markdown.core.PydocMarkdownPreprocessor,pydoc_markdown.core.SphinxMarkdownPreprocessor')
   d.setdefault('renderer', 'pydoc_markdown.core.Renderer')
@@ -170,11 +172,11 @@ def main(argv=None, prog=None, onreturn=None):
   for i, module in enumerate(modules):
     if isinstance(module, str):
       basename = module.partition(',')[0].rstrip('+')
-      modules[i] = (basename + '.md', module)
+      modules[i] = (module, os.path.join(config.docprefix, basename + '.md'))
 
   # Loader
   root = DocumentRoot()
-  for filename, module in modules:
+  for module, filename in modules:
     doc = Document(filename)  # TODO: Split extension..?
     [config.loader.load_document(modspec, doc) for modspec in module.split(',')]
     root.append(doc)
@@ -196,8 +198,16 @@ def main(argv=None, prog=None, onreturn=None):
     for document in root.documents:
       filename = os.path.join(config.builddir, document.path)
       makedirs(os.path.dirname(filename))
+      if not args.quiet:
+        print('render', filename)
       with open(filename, 'w') as out:
         config.renderer.render_document(out, document)
+
+    for src, dst in getattr(config, 'copy_files', []):
+      dst = os.path.join(config.builddir, dst)
+      if not args.quiet:
+        print('copy', dst)
+      shutil.copy(src, dst)
 
 
 if __name__ == '__main__':
