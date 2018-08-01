@@ -1,4 +1,5 @@
 # -*- coding: utf8 -*-
+# The MIT License (MIT)
 #
 # Copyright (c) 2018 Niklas Rosenstein
 #
@@ -30,8 +31,14 @@ can then take this node, parse its contents and split it into new nodes if a
 special syntax is found (eg. into a #Text #CrossReference #Text sequence).
 """
 
-__all__ = ['Node', 'Text', 'CrossReference', 'Section',
-           'Document', 'DocumentRoot']
+__all__ = [
+  'Node',
+  'Text',
+  'CrossReference',
+  'Section',
+  'Document',
+  'DocumentRoot'
+]
 
 import weakref
 
@@ -80,9 +87,11 @@ class Node(object):
     child._parent = weakref.ref(self)
     self._children.insert(index, child)
 
-  def collapse_text(self):
+  def collapse_text(self, recursive=True):
     """
-    Collapse multiple #Text nodes in the children of this node to one.
+    Collapse multiple #Text nodes in the children of this node to one. This
+    is used after every text processor as it may produce multiple consecutive
+    text nodes that can be joined into one.
     """
 
     text = ''
@@ -94,7 +103,8 @@ class Node(object):
       elif text:
         self.insert(self._children.index(child), Text(text))
         text = ''
-      child.collapse_text()
+      if recursive:
+        child.collapse_text()
     if text:
       self.append(Text(text))
     for node in remove:
@@ -103,7 +113,7 @@ class Node(object):
   def substitute(self, arg):
     """
     Substitute this node with the node or collection of nodes specified
-    with *arg*.
+    with *arg*. Can only be used when the node has a parent.
     """
 
     parent = self.parent

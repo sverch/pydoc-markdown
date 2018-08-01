@@ -21,7 +21,7 @@
 # IN THE SOFTWARE.
 
 from __future__ import print_function
-from pydoc_markdown.core import CompoundPreproc
+from pydoc_markdown.core import GroupPreprocessor
 from pydoc_markdown.core.document import DocumentRoot, Document
 from pydoc_markdown.utils.imputils import import_object
 from pydoc_markdown.utils.decorators import onreturn
@@ -89,7 +89,7 @@ def load_config(filename=None):
   d.setdefault('modules', [])
   d.setdefault('builddir', 'build/pydoc-markdown')
   d.setdefault('loader', 'pydoc_markdown.core.PythonLoader')
-  d.setdefault('preprocessor', 'pydoc_markdown.core.PdmPreproc,pydoc_markdown.core.SphinxPreproc')
+  d.setdefault('preprocessor', 'pydoc_markdown.core.PydocMarkdownPreprocesor,pydoc_markdown.core.SphinxMarkdownPreprocessor')
   d.setdefault('renderer', 'pydoc_markdown.core.Renderer')
   d.setdefault('sorting', 'line')
   d.setdefault('filter', ['docstring'])
@@ -141,7 +141,7 @@ def main(argv=None, prog=None, onreturn=None):
     if len(preprocs) == 1:
       config.preprocessor = import_object(preprocs[0])()
     else:
-      config.preprocessor = CompoundPreproc()
+      config.preprocessor = GroupPreprocessor()
       for name in preprocs:
         config.preprocessor.add(import_object(name)())
   if isinstance(config.renderer, str):

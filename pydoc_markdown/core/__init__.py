@@ -1,3 +1,4 @@
+# -*- coding: utf8 -*-
 # The MIT License (MIT)
 #
 # Copyright (c) 2018 Niklas Rosenstein
@@ -21,6 +22,15 @@
 # IN THE SOFTWARE.
 
 from __future__ import print_function
+
+__all__ = [
+  'PythonLoader',
+  'GroupPreprocessor',
+  'PydocMarkdownPreprocessor',
+  'SphinxMarkdownPreprocessor',
+]
+
+
 from .document import *
 from .interface import *
 from ..utils.imputils import import_object_with_scope
@@ -92,7 +102,7 @@ class PythonLoader(nr.interface.Implementation):
       self._build_document(section, sub, max_depth, depth+1)
 
 
-class CompoundPreproc(nr.interface.Implementation):
+class GroupPreprocessor(nr.interface.Implementation):
   nr.interface.implements(IPreprocessor)
 
   def __init__(self, *preprocessors):
@@ -121,7 +131,7 @@ class CompoundPreproc(nr.interface.Implementation):
       preproc.preprocess(root)
 
 
-class PdmPreproc(nr.interface.Implementation):
+class PydocMarkdownPreprocessor(nr.interface.Implementation):
   """
   This class implements the basic Pydoc-Markdown preprocessor.
 
@@ -262,7 +272,7 @@ class PdmPreproc(nr.interface.Implementation):
       module.append(section)
 
 
-class SphinxPreproc(nr.interface.Implementation):
+class SphinxMarkdownPreprocessor(nr.interface.Implementation):
   nr.interface.implements(ITextPreprocessor)
 
   @nr.interface.override
@@ -328,7 +338,8 @@ class SphinxPreproc(nr.interface.Implementation):
 
 class Renderer(nr.interface.Implementation):
   """
-  The default renderer implementation.
+  This is the default renderer implementation that produces hybrid
+  Markdown/HTML files.
 
   # Options
 

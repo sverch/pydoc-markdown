@@ -1,3 +1,4 @@
+# -*- coding: utf8 -*-
 # The MIT License (MIT)
 #
 # Copyright (c) 2018 Niklas Rosenstein
@@ -20,8 +21,20 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-__all__ = ['IConfigurable', 'ILoader', 'IPreprocessor', 'ITextPreprocessor',
-           'IRenderer']
+"""
+This module provides the interfaces that are used to load, process and render
+code documentation. The interfaces make no assumption about the programming
+language or markup used in the documentation, however the docstrings often
+refer to Python and Markdown as that is the main use case.
+"""
+
+__all__ = [
+  'IConfigurable',
+  'ILoader',
+  'IPreprocessor',
+  'ITextPreprocessor',
+  'IRenderer'
+]
 
 import nr.interface
 
@@ -29,6 +42,11 @@ from pydoc_markdown.core.document import Text
 
 
 class IConfigurable(nr.interface.Interface):
+  """
+  Base class for the interfaces in this module. Every one of these interfaces
+  that is used by Pydoc Markdown will have a `config` attribute so it has
+  access to the current site configuration.
+  """
 
   config = nr.interface.attr(dict)
 
@@ -43,8 +61,11 @@ class ILoader(IConfigurable):
 
   def load_document(self, modspec, doc):
     """
-    Load a Python module from the specified *modspec* and add the contents
-    to the #Document node *doc*.
+    Load the documentation content of a Python module from the
+    specified *modspec* into the document *doc*.
+
+    modspec (str): The identifier of the module to load.
+    doc (Document): The document to add the contents to.
     """
 
     raise NotImplementedError
@@ -65,6 +86,10 @@ class IPreprocessor(IConfigurable):
 
 
 class ITextPreprocessor(IPreprocessor):
+  """
+  This interface allows you to implement the #preprocess_text() method
+  that allows you to substitute a #Text node with one or many other nodes.
+  """
 
   @nr.interface.default
   def preprocess(self, root):
