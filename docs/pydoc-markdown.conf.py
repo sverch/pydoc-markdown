@@ -1,7 +1,8 @@
 
-docprefix = 'content'
+docprefix = 'content/api'
 
 modules = [
+  ('$$index', 'content/_private/api.md'),
   'pydoc_markdown.core++',
   'pydoc_markdown.core.interface++',
   'pydoc_markdown.core.document++',
@@ -11,7 +12,9 @@ modules = [
 ]
 
 copy_files = [
-  ('README.md', 'content/index.md'),
+  ('index.md', 'content/index.md'),
+  ('api.md', 'content/api.md'),
+  ('../README.md', 'content/_private/README.md'),
   '.statigen.toml'
 ]
 

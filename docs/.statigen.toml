@@ -1,2 +1,5 @@
 [statigen]
 contentDirectory = 'content'
+
+[site]
+title = 'Pydoc-Markdown'

@@ -125,3 +125,11 @@ class IRenderer(IConfigurable):
     Called to render a single document to a file. This is used in the
     Pydoc-Markdown plain mode.
     """
+
+  def load_renderer_document(self, root, name, document):
+    """
+    Called to load a special document that can only be loaded by the renderer.
+    Such document names are prefixed with two dollar signs. Renderers commonly
+    support the `$$index` document which contains an index of all symbols
+    in the document.
+    """

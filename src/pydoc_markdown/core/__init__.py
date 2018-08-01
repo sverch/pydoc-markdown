@@ -36,7 +36,9 @@ from .interface import *
 from ..utils.imputils import import_object_with_scope
 from ..utils.pydoc import dir_object, get_docstring, get_function_signature, trim
 
+import collections
 import inspect
+import os
 import nr.interface
 import re
 
@@ -171,7 +173,7 @@ class PydocMarkdownPreprocessor(nr.interface.Implementation):
     ITextPreprocessor.preprocess(self, root)
     if getattr(self.config, 'pdm_reorganize', True):
       for doc in root.documents:
-        for module in (x for x in doc.children if x.kind == 'module'):
+        for module in (x for x in doc.children if isinstance(x, Section) and x.kind == 'module'):
           self._reorganize_module(module)
 
   def preprocess_text(self, node):
@@ -369,8 +371,8 @@ class Renderer(nr.interface.Implementation):
 
   @nr.interface.override
   def render_document(self, fp, doc):
-    render_toc = getattr(self.config, 'render_toc', True)
-    toc_depth = getattr(self.config, 'render_toc_depth', 2)
+    render_toc = getattr(self.config, 'render_toc', True) and doc.options.get('render_toc', True)
+    toc_depth = doc.options.get('render_toc_depth', getattr(self.config, 'render_toc_depth', 2))
     if render_toc:
       fp.write('__Table of Contents__\n\n')
       for section in doc.hierarchy(filter=lambda x: isinstance(x, Section)):
@@ -421,3 +423,24 @@ class Renderer(nr.interface.Implementation):
       fp.write('`{}`'.format(node.label or node.id))
     else:
       print('warning: unexpected node in Renderer.render_node(): {}'.format(node))
+
+  @nr.interface.override
+  def load_renderer_document(self, root, name, document):
+    document.options['render_toc'] = False
+    if name != '$$index':
+      document.append(Text('Error: `{}` does not support document type `{}`.'
+                          .format(type(self).__name__, name)))
+      return False
+
+    letters = collections.defaultdict(list)
+    for section in root.hierarchy(filter=lambda x: isinstance(x, Section)):
+      letters[section.label[0].upper()].append(section)
+
+    for letter, sections in sorted(letters.items(), key=lambda x: x[0]):
+      document.append(Text('### {}\n\n'.format(letter)))
+      for section in sorted(sections, key=lambda x: x.label.lower()):
+        path = document.path_to(section.document).replace(os.sep, '/')
+        document.append(Text('* [`{}`]({}#py:{}) ({})\n'.format(section.label, path, section.id, section.kind)))
+      document.append(Text('\n'))
+
+    document.collapse_text()

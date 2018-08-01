@@ -188,9 +188,15 @@ def main(argv=None, prog=None, onreturn=None):
   # Loader
   root = DocumentRoot()
   for module, filename in modules:
+    if module.startswith('$$'): continue  # Intepreted by the renderer
     doc = Document(filename)  # TODO: Split extension..?
     [config.loader.load_document(modspec, doc) for modspec in module.split(',')]
     root.append(doc)
+  for module, filename in modules:
+    if module.startswith('$$'):
+      doc = Document(filename)
+      config.renderer.load_renderer_document(root, module, doc)
+      root.append(doc)
 
   # Preprocessor
   config.preprocessor.preprocess(root)
@@ -222,6 +228,7 @@ def main(argv=None, prog=None, onreturn=None):
       dst = os.path.join(config.builddir, dst)
       if not args.quiet:
         print('copy', dst)
+      makedirs(os.path.dirname(dst))
       shutil.copy(src, dst)
 
     if config.on_complete:

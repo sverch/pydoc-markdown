@@ -40,6 +40,7 @@ __all__ = [
   'DocumentRoot'
 ]
 
+import os
 import weakref
 
 
@@ -254,6 +255,14 @@ class Document(Node):
   def __init__(self, path):
     super(Document, self).__init__()
     self.path = path
+    self.options = {}
+
+  def path_to(self, doc):
+    """
+    Returns the relative path from this document to *doc*.
+    """
+
+    return os.path.relpath(doc.path, os.path.dirname(self.path))
 
   def __repr__(self):
     return 'Document(path={!r})'.format(self.path)
