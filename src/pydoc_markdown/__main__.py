@@ -48,7 +48,10 @@ def get_argument_parser(prog):
   parser.add_argument('modules', nargs='*', help='Specify one or more module '
     'to generate Markdown documentation files for. Appending a + to the '
     'module name will cause one additional level of objects to be taken into '
-    'account. Use ++ to include class members.')
+    'account. Use ++ to include class members.\n\n'
+    'Additionally you may pass Python assignment for these variable arguments '
+    'that will be executed inside the configuration module\'s scope to '
+    'override any options.')
   parser.add_argument('--plain', action='store_true',
     help='Generate a single Markdown file and write it to stdout.')
   parser.add_argument('-o', '--output', type=argparse.FileType('w'), help=
@@ -120,8 +123,15 @@ def main(argv=None, prog=None, onreturn=None):
   config = load_config(args.config)
 
   modules = args.modules or config.modules
+  add_config_lines = [x for x in modules if '=' in x]
+  modules = [x for x in modules if '=' not in x]
+
   if not modules:
     parser.error('no modules specified')
+
+  for line in add_config_lines:
+    name, expr = line.partition('=')[::2]
+    setattr(config, name, eval(expr, vars(config)))
 
   if args.sorting:
     if args.sorting not in ('name', 'line'):

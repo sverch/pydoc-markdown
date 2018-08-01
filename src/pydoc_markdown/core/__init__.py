@@ -347,11 +347,16 @@ class Renderer(nr.interface.Implementation):
     Render a table of contents in every document (#Trueby default).
   render_toc_depth (int):
     The maximum depth of the table of contents. (2 by default).
-  render_section_kind (bool):
-    Render the section kind into every header. (#True by default).
+  render_section_kind (bool, str):
+    Render the section kind into every header. (#True by default). Can
+    also be "on" (same as #True) or "plain" (to not wrap the section kind
+    text into HTML small tags).
   render_signature_block (bool):
     Render a function signature in a code block. If disabled, the
     signature will instead be rendered in a blockquote. (#False by default)
+  render_monotitles (bool):
+    Render module/class/function/data names in titles as monospace.
+    (#True by default)
   """
 
   nr.interface.implements(IRenderer)
@@ -371,7 +376,7 @@ class Renderer(nr.interface.Implementation):
       for section in doc.hierarchy(filter=lambda x: isinstance(x, Section)):
         if section.depth > toc_depth: continue
         fp.write('    ' * (section.depth - 1))
-        fp.write('* [{}](#py-{})'.format(section.label, section.id))
+        fp.write('* [{}](#py:{})'.format(section.label, section.id))
         fp.write('\n')
       fp.write('\n')
 
@@ -383,14 +388,22 @@ class Renderer(nr.interface.Implementation):
         self.render_node(fp, child)
     elif isinstance(node, Section):
       prefix = ''
-      if getattr(self.config, 'render_section_kind', True) and node.kind:
-        prefix = '<small>{}</small> '.format(node.kind)
+      section_kind = getattr(self.config, 'render_section_kind', True)
+      if section_kind not in (False, 'off') and node.kind:
+        if section_kind == 'plain':
+          prefix = node.kind + ' '
+        else:
+          prefix = '<small>{}</small> '.format(node.kind)
+      if getattr(self.config, 'render_monotitles', True) and node.kind:
+        title = '<code>{}</code>'.format(node.label)
+      else:
+        title = node.label
       print(
-        '<h{depth} id="py-{id}">{prefix}{title}</h{depth}>\n'.format(
+        '<h{depth} id="py:{id}">{prefix}{title}</h{depth}>\n'.format(
           prefix=prefix,
           depth=node.depth,
           id=node.id,
-          title=node.label
+          title=title
         ),
         file=fp
       )
